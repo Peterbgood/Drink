@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drink Scheduler</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <style>
+        .drink-item {
+            cursor: grab;
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+        }
+        .drink-item:hover {
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        }
+        .beer { background-color: #ffc107; color: #343a40; }
+        .water { background-color: #0dcaf0; color: #ffffff; }
+        .sprite { background-color: #198754; color: #ffffff; }
+        .seltzer-water { background-color: #6c757d; color: #ffffff; }
+
+        .time-slot {
+            height: 60px;
+            border: 2px dashed #6c757d;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            padding: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .time-slot.dragover {
+            background-color: #e9ecef;
+            border-color: #0d6efd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container my-5">
+        <h1 class="text-center mb-4">Drink Scheduler</h1>
+
+        <div class="row">
+            <div class="col-md-4">
+                <h2 class="h4">Drinks</h2>
+                <div id="drinks-list">
+                    <div class="drink-item beer" draggable="true" id="beer-1">Beer</div>
+                    <div class="drink-item water" draggable="true" id="water-1">Water</div>
+                    <div class="drink-item sprite" draggable="true" id="sprite-1">Sprite</div>
+                    <div class="drink-item seltzer-water" draggable="true" id="seltzer-water-1">Seltzer Water</div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <h2 class="h4">Schedule (7:30 PM - 10:00 PM)</h2>
+                <div id="schedule">
+                    <div class="time-slot" data-time="7:30 PM">7:30 PM</div>
+                    <div class="time-slot" data-time="8:00 PM">8:00 PM</div>
+                    <div class="time-slot" data-time="8:30 PM">8:30 PM</div>
+                    <div class="time-slot" data-time="9:00 PM">9:00 PM</div>
+                    <div class="time-slot" data-time="9:30 PM">9:30 PM</div>
+                    <div class="time-slot" data-time="10:00 PM">10:00 PM</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script>
+        const drinksList = document.getElementById('drinks-list');
+        const timeSlots = document.querySelectorAll('.time-slot');
+
+        let draggedItem = null;
+
+        // Add drag start event to each drink item
+        drinksList.addEventListener('dragstart', (e) => {
+            draggedItem = e.target;
+            setTimeout(() => {
+                e.target.style.display = 'none';
+            }, 0);
+        });
+
+        // Add drag end event
+        drinksList.addEventListener('dragend', (e) => {
+            setTimeout(() => {
+                e.target.style.display = 'block';
+                draggedItem = null;
+            }, 0);
+        });
+
+        // Loop through each time slot to add drag-and-drop events
+        timeSlots.forEach(slot => {
+            slot.addEventListener('dragover', (e) => {
+                e.preventDefault(); // This is crucial to allow dropping
+                slot.classList.add('dragover');
+            });
+
+            slot.addEventListener('dragleave', () => {
+                slot.classList.remove('dragover');
+            });
+
+            slot.addEventListener('drop', (e) => {
+                e.preventDefault();
+                slot.classList.remove('dragover');
+                
+                // If the slot is empty, append the dragged item
+                if (slot.children.length === 0 && draggedItem) {
+                    // Create a copy of the dragged item to place in the time slot
+                    const newDrinkItem = draggedItem.cloneNode(true);
+                    newDrinkItem.draggable = false;
+                    slot.appendChild(newDrinkItem);
+                    
+                    // You can optionally make the original item reappear in the list
+                    draggedItem.style.display = 'block';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
