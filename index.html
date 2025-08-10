@@ -14,14 +14,14 @@
             font-weight: bold;
             color: #fff;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
-            transition: transform 0.2s;
+            transition: transform 0.2s, opacity 0.2s;
         }
         .drink-item:hover {
             box-shadow: 0 0 8px rgba(0,0,0,0.3);
             transform: scale(1.02);
         }
         .drink-item.dragging {
-            opacity: 0.5;
+            opacity: 0.4;
             transform: scale(0.95);
         }
         .beer { background-color: #ffc107; color: #343a40; }
@@ -41,16 +41,33 @@
             text-align: center;
             font-style: italic;
             color: #6c757d;
+            position: relative; /* Needed for positioning the original time text */
         }
         .time-slot.dragover {
             background-color: #e9ecef;
             border-color: #0d6efd;
             border-style: solid;
         }
+        .time-slot.has-item {
+            border: 2px solid #6c757d;
+            font-style: normal;
+            color: #000;
+        }
         .time-slot .drink-item {
             width: 100%;
             margin: 0;
             cursor: default;
+        }
+        .time-slot .slot-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .time-slot.has-item .slot-label {
+            opacity: 0;
         }
     </style>
 </head>
@@ -62,22 +79,22 @@
             <div class="col-md-4 mb-4">
                 <h2 class="h4">Drinks</h2>
                 <div id="drinks-list">
-                    <div class="drink-item beer" draggable="true" data-drink="Beer">Beer</div>
-                    <div class="drink-item water" draggable="true" data-drink="Water">Water</div>
-                    <div class="drink-item sprite" draggable="true" data-drink="Sprite">Sprite</div>
-                    <div class="drink-item seltzer-water" draggable="true" data-drink="Seltzer Water">Seltzer Water</div>
+                    <div class="drink-item beer" draggable="true" data-drink-class="beer">Beer</div>
+                    <div class="drink-item water" draggable="true" data-drink-class="water">Water</div>
+                    <div class="drink-item sprite" draggable="true" data-drink-class="sprite">Sprite</div>
+                    <div class="drink-item seltzer-water" draggable="true" data-drink-class="seltzer-water">Seltzer Water</div>
                 </div>
             </div>
 
             <div class="col-md-8">
                 <h2 class="h4">Schedule (7:30 PM - 10:00 PM)</h2>
                 <div id="schedule">
-                    <div class="time-slot" data-time="7:30 PM">7:30 PM</div>
-                    <div class="time-slot" data-time="8:00 PM">8:00 PM</div>
-                    <div class="time-slot" data-time="8:30 PM">8:30 PM</div>
-                    <div class="time-slot" data-time="9:00 PM">9:00 PM</div>
-                    <div class="time-slot" data-time="9:30 PM">9:30 PM</div>
-                    <div class="time-slot" data-time="10:00 PM">10:00 PM</div>
+                    <div class="time-slot" data-time="7:30 PM"><span class="slot-label">7:30 PM</span></div>
+                    <div class="time-slot" data-time="8:00 PM"><span class="slot-label">8:00 PM</span></div>
+                    <div class="time-slot" data-time="8:30 PM"><span class="slot-label">8:30 PM</span></div>
+                    <div class="time-slot" data-time="9:00 PM"><span class="slot-label">9:00 PM</span></div>
+                    <div class="time-slot" data-time="9:30 PM"><span class="slot-label">9:30 PM</span></div>
+                    <div class="time-slot" data-time="10:00 PM"><span class="slot-label">10:00 PM</span></div>
                 </div>
             </div>
         </div>
@@ -91,16 +108,17 @@
         // Add dragstart event listener to the parent container
         drinksList.addEventListener('dragstart', (e) => {
             if (e.target.classList.contains('drink-item')) {
-                e.target.classList.add('dragging');
-                // Set the data to be transferred. We'll send the drink's name.
-                e.dataTransfer.setData('text/plain', e.target.dataset.drink);
+                // Set the data to be transferred, using the drink's class and text content
+                e.dataTransfer.setData('text/plain', e.target.outerHTML);
                 e.dataTransfer.effectAllowed = 'copy';
+                // Add a class for visual feedback
+                e.target.classList.add('dragging');
             }
         });
 
-        // Add dragend event listener to the parent container
         drinksList.addEventListener('dragend', (e) => {
             if (e.target.classList.contains('drink-item')) {
+                // Remove the dragging class
                 e.target.classList.remove('dragging');
             }
         });
@@ -108,8 +126,7 @@
         // Loop through each time slot to add drag-and-drop events
         timeSlots.forEach(slot => {
             slot.addEventListener('dragover', (e) => {
-                e.preventDefault(); // This is crucial to allow dropping
-                e.dataTransfer.dropEffect = 'copy';
+                e.preventDefault(); // Crucial to allow dropping
                 slot.classList.add('dragover');
             });
 
@@ -121,22 +138,25 @@
                 e.preventDefault();
                 slot.classList.remove('dragover');
 
-                // Get the data that was set during the dragstart event
-                const drinkName = e.dataTransfer.getData('text/plain');
-
-                // Find the original drink item based on its name
-                const originalDrinkItem = drinksList.querySelector(`[data-drink="${drinkName}"]`);
-                
-                // If the slot is empty and a drink was dropped, append a copy
-                if (slot.children.length === 0 && originalDrinkItem) {
-                    const newDrinkItem = originalDrinkItem.cloneNode(true);
-                    newDrinkItem.draggable = false;
-                    slot.innerHTML = ''; // Clear any existing text
-                    slot.appendChild(newDrinkItem);
-                    // Update the appearance of the time slot to indicate it's filled
-                    slot.style.display = 'flex'; // Ensure flex properties are active
-                    slot.style.justifyContent = 'center';
+                // Prevent dropping if a drink is already in the slot
+                if (slot.classList.contains('has-item')) {
+                    return;
                 }
+
+                // Get the HTML string that was set during the dragstart event
+                const drinkHtml = e.dataTransfer.getData('text/plain');
+
+                // Create a new element from the HTML string
+                const newDrinkItem = document.createElement('div');
+                newDrinkItem.innerHTML = drinkHtml;
+
+                // Grab the first child, which is our cloned drink item
+                const drinkElement = newDrinkItem.firstElementChild;
+                drinkElement.draggable = false; // Make the dropped item non-draggable
+                
+                // Clear the slot's content and append the new drink
+                slot.appendChild(drinkElement);
+                slot.classList.add('has-item');
             });
         });
     </script>
