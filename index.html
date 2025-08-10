@@ -105,6 +105,52 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script>
+        function swipedetect(el, callback) {
+            var touchsurface = el,
+                swipedir,
+                startX,
+                startY,
+                distX,
+                distY,
+                threshold = 150,
+                restraint = 100,
+                allowedTime = 300,
+                elapsedTime,
+                startTime,
+                handleswipe = callback || function(swipedir) {};
+
+            touchsurface.addEventListener('touchstart', function(e) {
+                var touchobj = e.changedTouches[0];
+                swipedir = 'none';
+                distX = 0;
+                distY = 0;
+                startX = touchobj.pageX;
+                startY = touchobj.pageY;
+                startTime = new Date().getTime();
+                e.preventDefault();
+            }, false);
+
+            touchsurface.addEventListener('touchmove', function(e) {
+                e.preventDefault();
+            }, false);
+
+            touchsurface.addEventListener('touchend', function(e) {
+                var touchobj = e.changedTouches[0];
+                distX = touchobj.pageX - startX;
+                distY = touchobj.pageY - startY;
+                elapsedTime = new Date().getTime() - startTime;
+                if (elapsedTime <= allowedTime) {
+                    if (Math.abs(distX) >= threshold && Math.abs(distY) <= restraint) {
+                        swipedir = (distX < 0) ? 'left' : 'right';
+                    } else if (Math.abs(distY) >= threshold && Math.abs(distX) <= restraint) {
+                        swipedir = (distY < 0) ? 'up' : 'down';
+                    }
+                }
+                handleswipe(swipedir);
+                e.preventDefault();
+            }, false);
+        }
+
         const drinks = document.querySelectorAll('.drink-item');
         const timeSlots = document.querySelectorAll('.time-slot');
 
@@ -147,8 +193,50 @@
 
                 slot.appendChild(newDrink);
                 slot.classList.add('has-item');
+                saveSchedule();
+            });
+
+            swipedetect(slot, function(swipedir) {
+                if (swipedir === 'left' && slot.querySelector('.drink-item')) {
+                    slot.removeChild(slot.querySelector('.drink-item'));
+                    slot.classList.remove('has-item');
+                    saveSchedule();
+                }
             });
         });
+
+        function saveSchedule() {
+            let schedule = {};
+            timeSlots.forEach(slot => {
+                let drinkElem = slot.querySelector('.drink-item');
+                if (drinkElem) {
+                    let drinkClass = drinkElem.className.split(' ')[1];
+                    let text = drinkElem.textContent;
+                    schedule[slot.dataset.time] = { class: drinkClass, text: text };
+                }
+            });
+            localStorage.setItem('drinkSchedule', JSON.stringify(schedule));
+        }
+
+        function loadSchedule() {
+            let saved = localStorage.getItem('drinkSchedule');
+            if (saved) {
+                let schedule = JSON.parse(saved);
+                timeSlots.forEach(slot => {
+                    let data = schedule[slot.dataset.time];
+                    if (data) {
+                        const newDrink = document.createElement('div');
+                        newDrink.className = `drink-item ${data.class}`;
+                        newDrink.textContent = data.text;
+                        newDrink.draggable = false;
+                        slot.appendChild(newDrink);
+                        slot.classList.add('has-item');
+                    }
+                });
+            }
+        }
+
+        loadSchedule();
     </script>
 </body>
 </html>
