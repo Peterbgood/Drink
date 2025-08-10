@@ -74,18 +74,16 @@
 <body>
     <div class="container my-5">
         <h1 class="text-center mb-4">Drink Scheduler</h1>
-
         <div class="row">
             <div class="col-md-4 mb-4">
                 <h2 class="h4">Drinks</h2>
                 <div id="drinks-list">
-                    <div class="drink-item beer" draggable="true" data-drink-class="beer">Beer</div>
-                    <div class="drink-item water" draggable="true" data-drink-class="water">Water</div>
-                    <div class="drink-item sprite" draggable="true" data-drink-class="sprite">Sprite</div>
-                    <div class="drink-item seltzer-water" draggable="true" data-drink-class="seltzer-water">Seltzer Water</div>
+                    <div class="drink-item beer" draggable="true" data-drink="beer">Beer</div>
+                    <div class="drink-item water" draggable="true" data-drink="water">Water</div>
+                    <div class="drink-item sprite" draggable="true" data-drink="sprite">Sprite</div>
+                    <div class="drink-item seltzer-water" draggable="true" data-drink="seltzer-water">Seltzer Water</div>
                 </div>
             </div>
-
             <div class="col-md-8">
                 <h2 class="h4">Schedule (7:30 PM - 10:00 PM)</h2>
                 <div id="schedule">
@@ -102,24 +100,22 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script>
-        const drinksList = document.getElementById('drinks-list');
+        const drinks = document.querySelectorAll('.drink-item');
         const timeSlots = document.querySelectorAll('.time-slot');
 
-        drinksList.addEventListener('dragstart', (e) => {
-            if (e.target.classList.contains('drink-item')) {
+        drinks.forEach(drink => {
+            drink.addEventListener('dragstart', (e) => {
                 e.dataTransfer.setData('text/plain', JSON.stringify({
-                    class: e.target.dataset.drinkClass,
-                    text: e.target.textContent
+                    drink: drink.dataset.drink,
+                    text: drink.textContent
                 }));
                 e.dataTransfer.effectAllowed = 'copy';
-                e.target.classList.add('dragging');
-            }
-        });
+                drink.classList.add('dragging');
+            });
 
-        drinksList.addEventListener('dragend', (e) => {
-            if (e.target.classList.contains('drink-item')) {
-                e.target.classList.remove('dragging');
-            }
+            drink.addEventListener('dragend', () => {
+                drink.classList.remove('dragging');
+            });
         });
 
         timeSlots.forEach(slot => {
@@ -136,17 +132,15 @@
                 e.preventDefault();
                 slot.classList.remove('dragover');
 
-                if (slot.classList.contains('has-item')) {
-                    return;
-                }
+                if (slot.querySelector('.drink-item')) return;
 
-                const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-                const drinkElement = document.createElement('div');
-                drinkElement.className = `drink-item ${data.class}`;
-                drinkElement.textContent = data.text;
-                drinkElement.draggable = false;
+                const { drink, text } = JSON.parse(e.dataTransfer.getData('text/plain'));
+                const newDrink = document.createElement('div');
+                newDrink.className = `drink-item ${drink}`;
+                newDrink.textContent = text;
+                newDrink.draggable = false;
 
-                slot.appendChild(drinkElement);
+                slot.appendChild(newDrink);
                 slot.classList.add('has-item');
             });
         });
